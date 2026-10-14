@@ -1,0 +1,4 @@
+# Supplies args values used by the TCK and e2e harness.
+# The default is "9.0"; this file makes the tested value explicit.
+args:
+  version: "9.0"

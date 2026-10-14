@@ -1,0 +1,47 @@
+schemaVersion: "2"
+kind: mixin
+name: dotnet
+displayName: .NET SDK
+description: "Adds .NET SDK capabilities to any agent environment. Version is configurable via the version arg (default: 9.0)."
+
+args:
+  version:
+    default: "9.0"
+    description: ".NET SDK channel to install (e.g. 8.0, 9.0, 10.0)"
+    pattern: '^[0-9]+\.[0-9]+$'
+
+permissions:
+  network:
+    allow:
+      - archive.ubuntu.com        # Ubuntu package archive (amd64)
+      - security.ubuntu.com       # Ubuntu security updates (amd64)
+      - ports.ubuntu.com          # Ubuntu archive/security (arm64)
+      - download.docker.com       # Docker's apt repo, pre-added by shell-docker
+      - dot.net                   # dotnet-install.sh entry URL (redirects)
+      - builds.dotnet.microsoft.com  # dotnet-install.sh redirect target
+      - dotnetcli.azureedge.net   # SDK tarballs (primary CDN)
+      - dotnetbuilds.azureedge.net   # SDK tarballs (secondary CDN)
+      - azurecom.azureedge.net    # Azure CDN edge used by the installer
+      - api.nuget.org             # NuGet package restore (runtime)
+      - nuget.org                 # NuGet package listings (runtime)
+
+# Setup commands executed during sandbox creation
+setup:
+  install:
+    - command: |
+        set -euo pipefail
+        DOTNET_CHANNEL='${{ kit.args.version }}'
+        apt-get update && apt-get install -y wget
+        wget https://dot.net/v1/dotnet-install.sh -O /tmp/dotnet-install.sh
+        chmod +x /tmp/dotnet-install.sh
+        /tmp/dotnet-install.sh --channel "$DOTNET_CHANNEL" --install-dir /usr/share/dotnet
+        ln -sf /usr/share/dotnet/dotnet /usr/local/bin/dotnet
+        rm /tmp/dotnet-install.sh
+      description: "Installs .NET SDK (channel: ${{ kit.args.version }}) globally"
+
+# Environment variables exposed to the agent inside the sandbox
+environment:
+  variables:
+    DOTNET_ROOT: "/usr/share/dotnet"
+    DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+    DOTNET_NOLOGO: "true"
